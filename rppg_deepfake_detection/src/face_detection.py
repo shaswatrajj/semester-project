@@ -1,61 +1,44 @@
 import cv2
 import mediapipe as mp
+from mediapipe.tasks import python
+from mediapipe.tasks.python import vision
 
-video_path = "../data/videos/test.mp4"
+MODEL_PATH = "../models/face_detector.task"
 
-cap = cv2.VideoCapture(video_path)
 
-mp_face_detection = mp.solutions.face_detection
+def detect_faces(frame, detector):
+    rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
-with mp_face_detection.FaceDetection(
-    model_selection=0,
-    min_detection_confidence=0.5
-) as face_detection:
+    mp_image = mp.Image(
+        image_format=mp.ImageFormat.SRGB,
+        data=rgb_frame
+    )
 
-    while True:
-        ret, frame = cap.read()
+    results = detector.detect(mp_image)
 
-        if not ret:
-            break
+    faces = []
 
-        # Convert BGR to RGB
-        rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+    for detection in results.detections:
+        bbox = detection.bounding_box
 
-        # Detect faces
-        results = face_detection.process(rgb_frame)
+        x = max(0, bbox.origin_x)
+        y = max(0, bbox.origin_y)
+        w = min(bbox.width, frame.shape[1] - x)
+        h = min(bbox.height, frame.shape[0] - y)
 
-        if results.detections:
+        faces.append((x, y, w, h))
 
-            for detection in results.detections:
+    return faces
 
-                bbox = detection.location_data.relative_bounding_box
 
-                h, w, _ = frame.shape
+def create_detector():
+    base_options = python.BaseOptions(
+        model_asset_path=MODEL_PATH
+    )
 
-                x = int(bbox.xmin * w)
-                y = int(bbox.ymin * h)
+    options = vision.FaceDetectorOptions(
+        base_options=base_options,
+        min_detection_confidence=0.5
+    )
 
-                width = int(bbox.width * w)
-                height = int(bbox.height * h)
-
-                # Keep coordinates inside the frame
-                x = max(0, x)
-                y = max(0, y)
-
-                # Draw rectangle
-                cv2.rectangle(
-                    frame,
-                    (x, y),
-                    (x + width, y + height),
-                    (0, 255, 0),
-                    2
-                )
-
-        cv2.imshow("Face Detection", frame)
-
-        # Press q to quit
-        if cv2.waitKey(1) & 0xFF == ord("q"):
-            break
-
-cap.release()
-cv2.destroyAllWindows()
+    return vision.FaceDetector.create_from_options(options)
