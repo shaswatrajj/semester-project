@@ -1,9 +1,10 @@
 import cv2
 import mediapipe as mp
+from pathlib import Path
 from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
 
-MODEL_PATH = "../models/face_detector.task"
+MODEL_PATH = Path(__file__).resolve().parent.parent / "models" / "face_detector.task"
 
 
 def detect_faces(frame, detector):
@@ -33,7 +34,7 @@ def detect_faces(frame, detector):
 
 def create_detector():
     base_options = python.BaseOptions(
-        model_asset_path=MODEL_PATH
+        model_asset_path=str(MODEL_PATH)
     )
 
     options = vision.FaceDetectorOptions(

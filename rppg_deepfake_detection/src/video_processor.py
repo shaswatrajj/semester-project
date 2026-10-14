@@ -1,6 +1,12 @@
 import cv2
-from face_detection import create_detector, detect_faces
-from roi_extraction import extract_face, resize_face
+
+if __package__:
+    from .face_detection import create_detector, detect_faces
+    from .roi_extraction import extract_face, resize_face
+else:
+    # Support running this module directly from the src directory as well.
+    from face_detection import create_detector, detect_faces
+    from roi_extraction import extract_face, resize_face
 
 
 def process_video(video_path, max_frames=None):
