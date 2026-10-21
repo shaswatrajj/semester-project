@@ -1,0 +1,7 @@
+# LocalPhysFormer Phase 1 dependencies.
+# Signal/video libraries only. PyTorch is added in the model phase.
+
+numpy>=1.26,<3
+opencv-python>=4.8,<5
+scipy>=1.11,<2
+mediapipe>=0.10,<0.11
