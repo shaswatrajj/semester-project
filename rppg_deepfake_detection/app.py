@@ -3,7 +3,7 @@ from pathlib import Path
 
 import streamlit as st
 
-from src.video_processor import process_video
+from src.video_processor import analyze_video
 
 
 st.set_page_config(page_title="rPPG Face Video Analyzer", page_icon="🎥", layout="wide")
@@ -34,13 +34,17 @@ if video is not None:
                 temporary_path = temporary_video.name
 
             with st.spinner("Scanning video frames for faces…"):
-                face_frames = process_video(temporary_path, max_frames=max_frames)
+                analysis = analyze_video(temporary_path, max_frames=max_frames)
 
-            st.session_state["face_frames"] = face_frames
+            st.session_state["face_frames"] = analysis["face_frames"]
+            st.session_state["quality_checks"] = analysis["checks"]
+            st.session_state["overall_quality_status"] = analysis["overall_status"]
+            st.session_state["frames_analyzed"] = analysis["frames_analyzed"]
             st.session_state["video_name"] = video.name
         except Exception as error:
             st.error(f"The video could not be analyzed: {error}")
             st.session_state.pop("face_frames", None)
+            st.session_state.pop("quality_checks", None)
         finally:
             if temporary_path:
                 Path(temporary_path).unlink(missing_ok=True)
@@ -48,6 +52,24 @@ if video is not None:
 if "face_frames" in st.session_state:
     face_frames = st.session_state["face_frames"]
     st.subheader(f"Results for {st.session_state['video_name']}")
+
+    st.subheader("Video quality checks")
+    st.caption(f"Checks are based on up to {st.session_state['frames_analyzed']} sampled frames. These are screening indicators, not guarantees of rPPG accuracy.")
+    if st.session_state.get("overall_quality_status") == "Ready for analysis":
+        st.success("Ready for analysis")
+    else:
+        st.warning("May be unreliable — review the checks and suggestions below.")
+    checks = st.session_state.get("quality_checks", {})
+    columns = st.columns(len(checks)) if checks else []
+    for column, (name, result) in zip(columns, checks.items()):
+        with column:
+            st.metric(name, result["status"])
+            st.caption(result["value"])
+    tips = [result["tip"] for result in checks.values() if result.get("tip")]
+    if tips:
+        st.markdown("**Suggestions**")
+        for tip in tips:
+            st.write(f"- {tip}")
 
     if not face_frames:
         st.warning("No face frames were found. Try a video with a larger, well-lit face.")
